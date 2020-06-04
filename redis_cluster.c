@@ -363,7 +363,7 @@ cluster_validate_args(double timeout, double read_timeout, HashTable *seeds) {
 /* Attempt to connect to a Redis cluster provided seeds and timeout options */
 static void redis_cluster_init(redisCluster *c, HashTable *ht_seeds, double timeout,
                                double read_timeout, int persistent, char *auth,
-                               size_t auth_len)
+                               size_t auth_len, zval *ssl)
 {
     redisCachedCluster *cc;
 
@@ -380,6 +380,10 @@ static void redis_cluster_init(redisCluster *c, HashTable *ht_seeds, double time
     /* Calculate the number of milliseconds we will wait when bouncing around,
      * (e.g. a node goes down), which is not the same as a standard timeout. */
     c->waitms = (long)(timeout * 1000);
+
+    if (ssl != NULL) {
+        redis_sock_set_stream_context(c->flags, ssl);
+    }
 
     /* Attempt to load from cache */
     if ((cc = cluster_cache_load(ht_seeds))) {
@@ -470,7 +474,7 @@ void redis_cluster_load(redisCluster *c, char *name, int name_len) {
     }
 
     /* Attempt to create/connect to the cluster */
-    redis_cluster_init(c, ht_seeds, timeout, read_timeout, persistent, auth, auth_len);
+    redis_cluster_init(c, ht_seeds, timeout, read_timeout, persistent, auth, auth_len, NULL);
 
     /* Clean up our arrays */
     zval_dtor(&z_seeds);
@@ -486,7 +490,7 @@ void redis_cluster_load(redisCluster *c, char *name, int name_len) {
 
 /* Create a RedisCluster Object */
 PHP_METHOD(RedisCluster, __construct) {
-    zval *object, *z_seeds = NULL;
+    zval *object, *z_seeds = NULL, *ssl = NULL;
     char *name, *auth = NULL;
     size_t name_len, auth_len = 0;
     double timeout = 0.0, read_timeout = 0.0;
@@ -495,9 +499,9 @@ PHP_METHOD(RedisCluster, __construct) {
 
     // Parse arguments
     if (zend_parse_method_parameters(ZEND_NUM_ARGS(), getThis(),
-                                    "Os!|addbs", &object, redis_cluster_ce, &name,
+                                    "Os!|addbsa", &object, redis_cluster_ce, &name,
                                     &name_len, &z_seeds, &timeout, &read_timeout,
-                                    &persistent, &auth, &auth_len) == FAILURE)
+                                    &persistent, &auth, &auth_len, &ssl) == FAILURE)
     {
         RETURN_FALSE;
     }
@@ -511,7 +515,7 @@ PHP_METHOD(RedisCluster, __construct) {
      * to a named cluster, stored in php.ini, otherwise we'll need manual seeds */
     if (ZEND_NUM_ARGS() > 1) {
         redis_cluster_init(context, Z_ARRVAL_P(z_seeds), timeout, read_timeout,
-            persistent, auth, auth_len);
+            persistent, auth, auth_len, ssl);
     } else {
         redis_cluster_load(context, name, name_len);
     }

@@ -1026,6 +1026,8 @@ void cluster_init_cache(redisCluster *c, redisCachedCluster *cc) {
                                  c->timeout, c->read_timeout, c->persistent,
                                  NULL, 0);
 
+        sock->stream_ctx = c->flags->stream_ctx;
+
         /* Add to seed nodes */
         zend_hash_str_update_ptr(c->seeds, key, keylen, sock);
 
@@ -1090,6 +1092,8 @@ cluster_init_seeds(redisCluster *cluster, HashTable *ht_seeds) {
         redis_sock = redis_sock_create(str, psep-str,
             (unsigned short)atoi(psep+1), cluster->timeout,
             cluster->read_timeout, cluster->persistent, NULL, 0);
+
+        redis_sock->stream_ctx = cluster->flags->stream_ctx;
 
         // Set auth information if specified
         if (cluster->flags->auth) {

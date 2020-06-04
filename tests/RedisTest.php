@@ -6038,6 +6038,43 @@ class Redis_Test extends TestSuite
         }
     }
 
+    public function testMultipleConnect() {
+        $host = $this->redis->GetHost();
+        $port = $this->redis->GetPort();
+
+        for($i = 0; $i < 5; $i++) {
+            $this->redis->connect($host, $port);
+            if ($this->getAuth()) {
+                $this->assertTrue($this->redis->auth($this->getAuth()));
+            }
+            $this->assertTrue($this->redis->ping());
+        }
+    }
+
+    public function testConnectException() {
+        $host = 'github.com';
+        if (gethostbyname($host) === $host) {
+            return $this->markTestSkipped('online test');
+        }
+        $redis = new Redis();
+        try {
+            $redis->connect($host, 6379, 0.01);
+        }  catch (Exception $e) {
+            $this->assertTrue(strpos($e, "timed out") !== false);
+        }
+    }
+
+    public function testTlsConnect()
+    {
+        foreach (['localhost' => true, '127.0.0.1' => false] as $host => $verify) {
+            $redis = new Redis();
+            $this->assertTrue($redis->connect('tls://' . $host, 6378, 0, null, 0, 0, [
+                'verify_peer_name' => $verify,
+                'verify_peer' => false,
+            ]));
+        }
+    }
+
     public function testSession_savedToRedis()
     {
         $this->setSessionHandler();
@@ -6208,43 +6245,6 @@ class Redis_Test extends TestSuite
         $this->assertTrue($elapsedTime > 2.5);
         $this->assertTrue($elapsedTime < 3.5);
         $this->assertTrue($sessionSuccessful);
-    }
-
-    public function testMultipleConnect() {
-        $host = $this->redis->GetHost();
-        $port = $this->redis->GetPort();
-
-        for($i = 0; $i < 5; $i++) {
-            $this->redis->connect($host, $port);
-            if ($this->getAuth()) {
-                $this->assertTrue($this->redis->auth($this->getAuth()));
-            }
-            $this->assertTrue($this->redis->ping());
-        }
-    }
-
-    public function testConnectException() {
-        $host = 'github.com';
-        if (gethostbyname($host) === $host) {
-            return $this->markTestSkipped('online test');
-        }
-        $redis = new Redis();
-        try {
-            $redis->connect($host, 6379, 0.01);
-        }  catch (Exception $e) {
-            $this->assertTrue(strpos($e, "timed out") !== false);
-        }
-    }
-
-    public function testTlsConnect()
-    {
-        foreach (['localhost' => true, '127.0.0.1' => false] as $host => $verify) {
-            $redis = new Redis();
-            $this->assertTrue($redis->connect('tls://' . $host, 6378, 0, null, 0, 0, [
-                'verify_peer_name' => $verify,
-                'verify_peer' => false,
-            ]));
-        }
     }
 
     public  function testSession_regenerateSessionId_noLock_noDestroy() {

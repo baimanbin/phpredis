@@ -46,7 +46,6 @@ class Redis_Cluster_Test extends Redis_Test {
     public function testDoublePipeNoOp() { return $this->markTestSkipped(); }
     public function testSwapDB() { return $this->markTestSkipped(); }
     public function testConnectException() { return $this->markTestSkipped(); }
-    public function testTlsConnect() { return $this->markTestSkipped(); }
 
     /* Session locking feature is currently not supported in in context of Redis Cluster.
        The biggest issue for this is the distribution nature of Redis cluster */
@@ -728,6 +727,18 @@ class Redis_Cluster_Test extends Redis_Test {
 
         $this->assertEquals($pong, $i);
         ini_set('redis.pconnect.pooling_enabled', $prev_value);
+    }
+
+    public function testTlsConnect()
+    {
+        $c = new RedisCluster(null, [
+            'tls://localhost:6370',
+            'tls://localhost:6371',
+            'tls://localhost:6372',
+        ], 0, 0, false, $this->getAuth(), [
+            'verify_peer' => false,
+        ]);
+        $this->assertTrue($c->ping(microtime(true)));
     }
 
     /**

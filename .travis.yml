@@ -48,7 +48,7 @@ before_script:
   - echo yes | redis-cli --cluster create $(seq -f 127.0.0.1:%g 7000 7011) --cluster-replicas 3 -a phpredis
   - echo 'extension = redis.so' >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
   - openssl req -x509 -newkey rsa:1024 -nodes -keyout stunnel.key -out stunnel.pem -days 1 -subj '/CN=localhost'
-  - echo -e 'key=stunnel.key\ncert=stunnel.pem\npid=/tmp/stunnel.pid\n[redis]\naccept=6378\nconnect=6379' > stunnel.conf
+  - echo -e 'key=stunnel.key\ncert=stunnel.pem\npid=/tmp/stunnel.pid\n[redis]\naccept=6378\nconnect=6379\n[m0]\naccept=6370\nconnect=7000\n[m1]\naccept=6371\nconnect=7001\n[m2]\naccept=6372\nconnect=7002' > stunnel.conf
   - stunnel stunnel.conf
 script:
   - php tests/TestRedis.php --class Redis --auth phpredis
